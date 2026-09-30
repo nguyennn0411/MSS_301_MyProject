@@ -13,7 +13,7 @@
 - [x] Skeleton User Service, Court Service, Booking Service.
 - [x] README và hướng dẫn chạy local.
 - [x] Maven Wrapper, .gitignore.
-- [ ] Repository đã được đưa lên GitHub và có URL nộp bài.
+- [x] Repository đã được đưa lên GitHub và có URL nộp bài: https://github.com/nguyennn0411/MSS_301_MyProject.
 - [ ] Đã xác nhận với giảng viên hạn commit và phân biệt đề tài Project/Assignment.
 
 Kết quả build/chạy thực tế được ghi riêng tại [biên bản kiểm tra](07-validation.md).
@@ -21,22 +21,20 @@ Không đánh dấu hoàn thành mốc 2 hoặc Docker chỉ vì đã có skelet
 
 ## Đưa repository lên GitHub
 
-Repository remote chưa được cung cấp khi khởi tạo bộ bài.
-Tạo một repository trống trên GitHub (không tạo trước README/.gitignore để tránh lịch sử không liên quan).
-Sau khi đã có commit local, chạy các lệnh sau tại root và thay URL mẫu bằng URL thật:
+Đã push source backend và frontend lên nhánh main ngày 30/09/2026.
+Remote origin đã được cấu hình thành https://github.com/nguyennn0411/MSS_301_MyProject.git.
+Các lần cập nhật tiếp theo, sau khi tạo commit local, chạy:
 
 ```powershell
-git remote add origin https://github.com/YOUR_ACCOUNT/sportbooking.git
 git push -u origin main
 ```
 
-Không chạy nguyên URL mẫu. Nếu đã có origin, xem `git remote -v` trước khi sửa.
-Nếu chưa có commit local, kiểm tra source bằng `git status`, sau đó:
+Kiểm tra source bằng `git status`, sau đó tạo commit cho thay đổi mới:
 
 ```powershell
 git add .
-git commit -m "chore: initialize SportBooking milestone 1 architecture and skeleton"
+git commit -m "docs: update project documentation"
 ```
 
 Xác minh trên GitHub thấy README, docs, discovery-server, api-gateway và services.
-Sau khi push thành công, đánh dấu checklist GitHub phía trên và thêm link repository vào README.
+Link repository đã được thêm vào README.

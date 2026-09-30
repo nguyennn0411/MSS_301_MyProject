@@ -2,6 +2,8 @@
 
 Bài làm MSS301: xây dựng hệ thống đặt sân thể thao theo kiến trúc Microservices, sử dụng Spring Boot, Spring Cloud và Docker.
 
+Repository GitHub: [nguyennn0411/MSS_301_MyProject](https://github.com/nguyennn0411/MSS_301_MyProject).
+
 **Giai đoạn hiện tại: mốc 1 — phân tích, thiết kế và khởi tạo skeleton (nội dung Asm 1.1).**
 Đã có 5 ứng dụng Spring Boot, cấu hình Eureka, route Gateway và API kiểm tra kết nối.
 Chưa có CRUD nghiệp vụ, database, đăng nhập, gọi REST giữa các service nghiệp vụ hoặc Docker Compose.
