@@ -20,3 +20,8 @@ Thumbs.db
 .env.*
 !.env.example
 application-local.yml
+
+# Local service databases
+data/
+*.mv.db
+*.trace.db

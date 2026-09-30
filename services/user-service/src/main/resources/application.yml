@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: user-service
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/user-db;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
 
 eureka:
   client:

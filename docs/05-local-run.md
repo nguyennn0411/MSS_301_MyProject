@@ -1,99 +1,89 @@
-# 05. Hướng dẫn chạy skeleton local
+# 05. Chạy local — mốc 2
 
-## 1. Chuẩn bị
+## Yêu cầu
 
-- JDK 21 và biến JAVA_HOME đúng đường dẫn JDK.
-- Internet ở lần build đầu để Maven Wrapper tải Maven/dependency.
-- Các cổng 8761, 8080, 8081, 8082, 8083 chưa bị chiếm.
-- Chưa cần database hoặc Docker cho mốc 1.
+JDK 21, JAVA_HOME đúng thư mục JDK; Node.js 22.12+ hoặc 24 cho frontend.
+Cổng 8761, 8080–8083, 5173 còn trống. Không cần Docker hoặc database cài ngoài.
+Chạy các lệnh từ root repository để vị trí file dữ liệu thống nhất.
 
-Kiểm tra trên PowerShell:
+## Build và khởi động
 
 ```powershell
 java -version
-$env:JAVA_HOME
-.\mvnw.cmd --version
 .\mvnw.cmd clean verify
+.\scripts\start-local.ps1
 ```
 
-Lệnh verify ở mốc 1 kiểm tra compile và đóng gói; chưa có bộ kiểm thử nghiệp vụ vì chưa triển khai nghiệp vụ.
+Script PowerShell dùng JAVA_HOME/bin/java.exe trực tiếp, chạy cửa sổ ẩn,
+lưu PID và thời gian khởi tạo trong .run/backend-processes.json.
+Dừng bằng .\scripts\stop-local.ps1 (chỉ dừng PID và thời gian khớp).
+Nếu thay source Java: dừng backend trước khi build để Windows không khóa file JAR.
 
-## 2. Khởi chạy
-
-Sau khi build, mở 5 terminal tại root repository. Giữ terminal mở trong lúc demo.
-
-| Thứ tự | Thành phần | Lệnh |
-|---|---|---|
-| 1 | Eureka | java -jar discovery-server/target/discovery-server-0.0.1-SNAPSHOT.jar |
-| 2 | User | java -jar services/user-service/target/user-service-0.0.1-SNAPSHOT.jar |
-| 3 | Court | java -jar services/court-service/target/court-service-0.0.1-SNAPSHOT.jar |
-| 4 | Booking | java -jar services/booking-service/target/booking-service-0.0.1-SNAPSHOT.jar |
-| 5 | Gateway | java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar |
-
-Chờ Eureka sẵn sàng trước khi chạy các ứng dụng còn lại.
-Mở http://localhost:8761 và kiểm tra các tên API-GATEWAY, USER-SERVICE, COURT-SERVICE, BOOKING-SERVICE.
-
-Mỗi module cũng có thể chạy riêng bằng Maven:
-` .\mvnw.cmd -f services/user-service/pom.xml spring-boot:run `
-(chạy từ root; bỏ khoảng trắng đầu/cuối khi dùng).
-
-## 3. Kiểm tra trực tiếp và qua Gateway
+Frontend:
 
 ```powershell
-# Health của từng ứng dụng
-Invoke-RestMethod http://localhost:8761/actuator/health
-Invoke-RestMethod http://localhost:8080/actuator/health
-Invoke-RestMethod http://localhost:8081/actuator/health
-Invoke-RestMethod http://localhost:8082/actuator/health
-Invoke-RestMethod http://localhost:8083/actuator/health
-
-# Gọi trực tiếp từng service
-Invoke-RestMethod http://localhost:8081/api/users/status
-Invoke-RestMethod http://localhost:8082/api/courts/status
-Invoke-RestMethod http://localhost:8083/api/bookings/status
-
-# Gọi qua Gateway
-Invoke-RestMethod http://localhost:8080/api/users/status
-Invoke-RestMethod http://localhost:8080/api/courts/status
-Invoke-RestMethod http://localhost:8080/api/bookings/status
+cd frontend
+npm ci
+npm run dev
 ```
 
-Ví dụ kết quả từ /api/bookings/status (thứ tự thuộc tính có thể khác):
+Mở http://127.0.0.1:5173 và đợi badge API đang kết nối.
+Nếu frontend được mở trước backend, bấm Tải lại dữ liệu sau khi backend sẵn sàng.
 
-```json
-{"service":"booking-service","status":"UP","milestone":"1"}
-```
+## Chạy thủ công từng service
 
-Đây là status API thật của skeleton, không phải API tạo hoặc đọc lượt đặt.
-Các đường dẫn nghiệp vụ trong tài liệu phân tích chưa tồn tại.
+Có thể mở 5 terminal tại root, chạy theo thứ tự dưới đây.
+Linux/macOS dùng ./mvnw thay cho mvnw.cmd và các lệnh java giữ nguyên.
 
-## 4. Cấu hình môi trường
-
-Mỗi ứng dụng nhận:
-
-| Biến | Mặc định | Công dụng |
-|---|---|---|
-| SERVER_PORT | Theo bảng cổng | Đổi cổng ứng dụng |
-| EUREKA_SERVER_URL | http://localhost:8761/eureka/ | Địa chỉ discovery |
-
-Ví dụ đổi User Service sang cổng 8091 trong terminal riêng:
-
-```powershell
-$env:SERVER_PORT = '8091'
+```text
+java -jar discovery-server/target/discovery-server-0.0.1-SNAPSHOT.jar
 java -jar services/user-service/target/user-service-0.0.1-SNAPSHOT.jar
+java -jar services/court-service/target/court-service-0.0.1-SNAPSHOT.jar
+java -jar services/booking-service/target/booking-service-0.0.1-SNAPSHOT.jar
+java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
 ```
 
-Gateway vẫn route theo tên user-service khi instance mới đã đăng ký.
-Xóa biến sau khi dùng: `Remove-Item Env:SERVER_PORT`.
-Không dùng chung SERVER_PORT=8091 cho tất cả ứng dụng.
+Eureka cần sẵn sàng trước các client. Gateway/Booking cập nhật registry theo chu kỳ;
+503 ngay sau khởi động có thể cần chờ 30–90 giây. Script chờ tối đa 180 giây.
 
-## 5. Xử lý lỗi thường gặp
+## Kiểm tra và demo
 
-- **JAVA_HOME sai:** trỏ đến thư mục JDK 21, không phải thư mục bin.
-- **Tải dependency lỗi:** kiểm tra Internet/proxy và cấu hình Maven của máy; không bỏ kiểm tra TLS.
-- **Port already in use:** dừng đúng ứng dụng đang chiếm cổng hoặc đổi SERVER_PORT.
-- **Gateway trả 503 lúc mới chạy:** kiểm tra service đã đăng ký Eureka; chờ khoảng 30–90 giây cho registry/cache cập nhật.
-- **404:** kiểm tra URL; mốc 1 chỉ có /api/users/status, /api/courts/status, /api/bookings/status.
-- **Connection refused từ Eureka client:** kiểm tra Discovery Server và EUREKA_SERVER_URL.
+```powershell
+Invoke-RestMethod http://localhost:8080/api/users/user-nguyen
+Invoke-RestMethod http://localhost:8080/api/courts
+node scripts/test-api.mjs
+```
 
-Dừng ứng dụng bằng Ctrl+C trong từng terminal.
+Mở Eureka, kiểm tra USER-SERVICE, COURT-SERVICE, BOOKING-SERVICE, API-GATEWAY.
+Trên frontend: chọn sân → ngày tương lai → giờ trống → Xác nhận đặt sân.
+Tải lại trang, vào Lịch đặt của tôi: dữ liệu vẫn được đọc lại từ backend.
+Hủy lịch, mở lại sân: giờ được giải phóng.
+
+Kiểm tra lưu bền: dừng và khởi động backend, gọi lại GET /api/bookings?userId=user-nguyen.
+Không xóa data/ nếu muốn giữ dữ liệu. Không commit database/log.
+
+## Cấu hình
+
+| Biến môi trường | Mặc định | Ý nghĩa |
+|---|---|---|
+| SERVER_PORT | 8761/8080/8081/8082/8083 tùy ứng dụng | Cổng ứng dụng |
+| EUREKA_SERVER_URL | http://localhost:8761/eureka/ | Discovery |
+| DB_URL | jdbc:h2:file:./data/{user,court,booking}-db;DB_CLOSE_ON_EXIT=FALSE | Database riêng của service |
+| DB_USERNAME | sa | Tài khoản H2 local |
+| DB_PASSWORD | rỗng | Mật khẩu H2 local |
+
+Biến DB_* chỉ áp dụng ba service nghiệp vụ. Không dùng chung DB_URL cho cả ba.
+Đường dẫn tương đối tính từ working directory. Chạy từ thư mục khác có thể tạo database khác.
+Seed chỉ thêm record chưa tồn tại, không ghi đè record đã cập nhật.
+
+## Xử lý lỗi
+
+- Build không đổi tên được JAR: dừng đúng service trước khi build lại.
+- H2 báo database đang mở: đang có tiến trình khác giữ cùng file; dùng stop-local hoặc dừng terminal cũ.
+- Gateway 503: kiểm tra log .run và registry Eureka; đợi đồng bộ sau restart.
+- POST booking 503: User/Court Service không sẵn sàng hoặc request REST timeout.
+- POST booking 409: trùng giờ, user/sân ngừng hoạt động.
+- POST booking 400: giờ không hợp lệ, thiếu trường hoặc sai kiểu.
+- Frontend không tự chuyển sang demo khi backend lỗi; nó hiện lỗi và cho tải lại.
+
+Các endpoint hiện chưa có xác thực/phân quyền. Dùng cho demo học phần local, không coi userId là bằng chứng danh tính.

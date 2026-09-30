@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  courts,
   money,
   vietnamDate,
   bookingError,
   clockTime,
   startsAt,
   readSaved,
-  validBooking,
 } from "./data";
 import "./App.css";
+import {
+  request,
+  USER_ID,
+  courtView,
+  bookingView,
+  bookingPayload,
+} from "./api";
 
 function Icon({ name, size = 20 }) {
   const shapes = {
@@ -131,31 +136,54 @@ function CourtArt({ type, tone, hero = false }) {
     </div>
   );
 }
-function BookingDialog({ court, initialDate, bookings, onClose, onBook }) {
+function BookingDialog({ court, initialDate, onClose, onBook }) {
   const ref = useRef(null);
   const [date, setDate] = useState(initialDate);
   const [hour, setHour] = useState(null);
   const [duration, setDuration] = useState(1);
   const [error, setError] = useState("");
+  const [bookings, setBookings] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [availabilityKey, setAvailabilityKey] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    request(
+      "/bookings/availability?courtId=" +
+        encodeURIComponent(court.id) +
+        "&date=" +
+        date,
+      { signal: controller.signal },
+    )
+      .then((rows) => {
+        setBookings(
+          rows.map((b) => ({ ...bookingView(b), courtId: court.id })),
+        );
+        setAvailabilityKey(date);
+        setError("");
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setError(e.message);
+      });
+    return () => controller.abort();
+  }, [court.id, date]);
   useEffect(() => {
     ref.current.showModal();
   }, []);
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     const issue = bookingError(bookings, court.id, date, hour, duration);
     if (issue) {
       setError(issue);
       return;
     }
-    onBook({
-      id: crypto.randomUUID(),
-      courtId: court.id,
-      date,
-      hour,
-      duration,
-      total: court.price * duration,
-      status: "CONFIRMED",
-    });
+    setBusy(true);
+    try {
+      await onBook({ courtId: court.id, date, hour, duration });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <dialog
@@ -183,7 +211,8 @@ function BookingDialog({ court, initialDate, bookings, onClose, onBook }) {
           {court.location} · {money(court.price)}/giờ
         </p>
         <div className="demo-note">
-          Đặt thử bằng dữ liệu demo, lưu trên trình duyệt này.
+          Lịch đặt được lưu tại Booking Service. Giá cuối cùng được backend xác
+          nhận.
         </div>
         <div className="form-row">
           <label>
@@ -227,7 +256,7 @@ function BookingDialog({ court, initialDate, bookings, onClose, onBook }) {
                 <button
                   type="button"
                   key={h}
-                  disabled={!!issue}
+                  disabled={!!issue || availabilityKey !== date || busy}
                   title={issue || "Chọn " + clockTime(h)}
                   aria-pressed={hour === h}
                   className={hour === h ? "time selected" : "time"}
@@ -254,8 +283,12 @@ function BookingDialog({ court, initialDate, bookings, onClose, onBook }) {
           <span>
             Tổng tiền dự kiến<strong>{money(court.price * duration)}</strong>
           </span>
-          <button className="primary" disabled={hour === null} type="submit">
-            Xác nhận đặt thử <Icon name="arrow" />
+          <button
+            className="primary"
+            disabled={hour === null || busy || availabilityKey !== date}
+            type="submit"
+          >
+            {busy ? "Đang lưu…" : "Xác nhận đặt sân"} <Icon name="arrow" />
           </button>
         </div>
       </form>
@@ -303,8 +336,8 @@ function Connection() {
       <span className="eyebrow">KẾT NỐI HỆ THỐNG</span>
       <h2>Mọi dịch vụ, một điểm đến.</h2>
       <p>
-        Kiểm tra ba service qua API Gateway. Chức năng đặt sân hiện dùng dữ liệu
-        demo; kết nối thành công không chuyển sang đặt sân thật.
+        Kiểm tra ba service qua API Gateway. Lịch đặt được lưu trên backend;
+        Booking Service gọi REST đến User Service và Court Service.
       </p>
       <button className="primary" onClick={check} disabled={loading}>
         {loading ? "Đang kiểm tra…" : "Kiểm tra kết nối"}
@@ -335,14 +368,38 @@ export default function App() {
     [sort, setSort] = useState("featured"),
     [selected, setSelected] = useState(null),
     [toast, setToast] = useState("");
-  const [bookings, setBookings] = useState(() =>
-    readSaved("sportbooking.bookings.v1", [], validBooking),
-  );
+  const [bookings, setBookings] = useState([]);
+  const [courts, setCourts] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
+  const [cancelling, setCancelling] = useState(null);
   const [favorites, setFavorites] = useState(() =>
-    readSaved("sportbooking.favorites.v1", [], (id) =>
-      courts.some((c) => c.id === id),
-    ),
+    readSaved("sportbooking.favorites.v1", [], (id) => typeof id === "string"),
   );
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.all([
+      request("/courts", { signal: controller.signal }),
+      request("/users/" + USER_ID, { signal: controller.signal }),
+      request("/bookings?userId=" + USER_ID, { signal: controller.signal }),
+    ])
+      .then(([c, u, b]) => {
+        setCourts(c.map(courtView));
+        setUser(u);
+        setBookings(b.map(bookingView));
+        setLoadError("");
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) {
+          setLoadError(e.message);
+          setLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [refresh]);
   const [storageError, setStorageError] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -352,17 +409,13 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(
-        "sportbooking.bookings.v1",
-        JSON.stringify(bookings),
-      );
-      localStorage.setItem(
         "sportbooking.favorites.v1",
         JSON.stringify(favorites),
       );
     } catch {
       queueMicrotask(() => setStorageError(true));
     }
-  }, [bookings, favorites]);
+  }, [favorites]);
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(""), 5000);
@@ -378,6 +431,7 @@ export default function App() {
   const filtered = courts
     .filter(
       (c) =>
+        c.active &&
         (page !== "favorites" || favorites.includes(c.id)) &&
         (sport === "Tất cả" || sport === c.sport) &&
         (c.name + " " + c.location)
@@ -399,16 +453,32 @@ export default function App() {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   }
-  function addBooking(b) {
-    const error = bookingError(bookings, b.courtId, b.date, b.hour, b.duration);
-    if (error) {
-      setToast(error);
-      return;
-    }
-    setBookings((prev) => [b, ...prev]);
+  async function addBooking(b) {
+    const created = bookingView(
+      await request("/bookings", {
+        method: "POST",
+        body: JSON.stringify(bookingPayload(b)),
+      }),
+    );
+    setBookings((prev) => [created, ...prev]);
     setSelected(null);
-    setToast("Đã lưu lịch đặt demo. Hẹn bạn trên sân!");
+    setToast("Đã lưu lịch đặt trên hệ thống.");
     setPage("bookings");
+  }
+  async function cancelBooking(b) {
+    if (!window.confirm("Hủy lịch đặt tại " + b.courtName + "?")) return;
+    setCancelling(b.id);
+    try {
+      const cancelled = bookingView(
+        await request("/bookings/" + b.id + "/cancel", { method: "PATCH" }),
+      );
+      setBookings((prev) => prev.map((x) => (x.id === b.id ? cancelled : x)));
+      setToast("Đã hủy lịch đặt.");
+    } catch (e) {
+      setToast(e.message);
+    } finally {
+      setCancelling(null);
+    }
   }
   return (
     <div className="app">
@@ -464,8 +534,8 @@ export default function App() {
           <div className="profile">
             <span className="avatar">PN</span>
             <div>
-              <strong>Cao Phúc Nguyên</strong>
-              <small>HE191659 · Tài khoản demo</small>
+              <strong>{user?.fullName || "SportBooking"}</strong>
+              <small>HE191659 · Tài khoản học tập</small>
             </div>
           </div>
         </div>
@@ -478,7 +548,11 @@ export default function App() {
           </div>
           <span className="demo-badge">
             <span />
-            Chế độ demo
+            {loading
+              ? "Đang kết nối"
+              : loadError
+                ? "Mất kết nối"
+                : "API đang kết nối"}
           </span>
         </header>
         <main>
@@ -511,8 +585,25 @@ export default function App() {
           </div>
           {storageError && (
             <div className="error-banner" role="alert">
-              Trình duyệt không cho phép lưu dữ liệu. Lịch đặt chỉ được giữ
-              trong phiên hiện tại.
+              Trình duyệt không cho phép lưu sân yêu thích.
+            </div>
+          )}
+          {loading && (
+            <div className="demo-note" role="status">
+              Đang tải dữ liệu từ Gateway…
+            </div>
+          )}
+          {loadError && (
+            <div className="error-banner" role="alert">
+              {loadError}{" "}
+              <button
+                onClick={() => {
+                  setLoading(true);
+                  setRefresh((r) => r + 1);
+                }}
+              >
+                Tải lại dữ liệu
+              </button>
             </div>
           )}
           {page === "explore" && (
@@ -578,7 +669,9 @@ export default function App() {
                   </h2>
                   <p>Chọn môn thể thao yêu thích và tìm sân dành cho bạn.</p>
                 </div>
-                <span className="subtle-badge">06 sân mẫu</span>
+                <span className="subtle-badge">
+                  {courts.filter((c) => c.active).length} sân hoạt động
+                </span>
               </div>
               <div className="filter-bar">
                 <div className="search-field">
@@ -653,9 +746,6 @@ export default function App() {
                     <div className="card-body">
                       <div className="card-title">
                         <h3>{c.name}</h3>
-                        <span className="rating">
-                          ★ <b>{c.rating}</b>
-                        </span>
                       </div>
                       <p className="court-location">
                         <Icon name="pin" size={14} />
@@ -706,8 +796,8 @@ export default function App() {
                 </div>
               )}
               <p className="data-caption">
-                Thông tin sân, giá và đánh giá là dữ liệu minh họa. Lịch trống
-                được kiểm tra khi chọn giờ đặt.
+                Sân và giá lấy từ Court Service. Lịch trống được kiểm tra cho
+                tất cả người dùng khi chọn giờ.
               </p>
             </section>
           )}
@@ -727,8 +817,8 @@ export default function App() {
                 </button>
               </div>
               <div className="demo-note">
-                Lịch đặt demo chỉ lưu trên trình duyệt này, chưa gửi đến
-                backend.
+                Lịch đặt lấy từ Booking Service. Tài khoản học tập: Cao Phúc
+                Nguyên. Chưa triển khai đăng nhập/phân quyền.
               </div>
               {!bookings.length ? (
                 <div className="empty-state">
@@ -746,7 +836,12 @@ export default function App() {
               ) : (
                 <div className="booking-list">
                   {bookings.map((b) => {
-                    const c = courts.find((c) => c.id === b.courtId),
+                    const c = courts.find((c) => c.id === b.courtId) || {
+                        name: b.courtName,
+                        type: "tennis",
+                        tone: "sage",
+                        sport: "Sân thể thao",
+                      },
                       past = startsAt(b) <= now;
                     return (
                       <article className="booking-card" key={b.id}>
@@ -762,7 +857,7 @@ export default function App() {
                             {clockTime(b.hour)}–{clockTime(b.hour + b.duration)}
                           </p>
                           <small className="muted">
-                            Mã demo: {b.id.slice(0, 8).toUpperCase()}
+                            Mã đặt: {b.id.slice(0, 8).toUpperCase()}
                           </small>
                         </div>
                         <div className="booking-actions">
@@ -782,26 +877,8 @@ export default function App() {
                           {b.status === "CONFIRMED" && !past && (
                             <button
                               className="cancel-button"
-                              onClick={() => {
-                                if (startsAt(b) <= Date.now()) {
-                                  setToast("Không thể hủy lượt đã bắt đầu.");
-                                  return;
-                                }
-                                if (
-                                  window.confirm(
-                                    "Hủy lịch đặt demo tại " + c.name + "?",
-                                  )
-                                ) {
-                                  setBookings((prev) =>
-                                    prev.map((x) =>
-                                      x.id === b.id
-                                        ? { ...x, status: "CANCELLED" }
-                                        : x,
-                                    ),
-                                  );
-                                  setToast("Đã hủy lịch đặt demo.");
-                                }
-                              }}
+                              disabled={cancelling === b.id}
+                              onClick={() => cancelBooking(b)}
                             >
                               Hủy lịch đặt
                             </button>
@@ -826,7 +903,6 @@ export default function App() {
         <BookingDialog
           court={selected}
           initialDate={date || vietnamDate(1)}
-          bookings={bookings}
           onClose={() => setSelected(null)}
           onBook={addBooking}
         />

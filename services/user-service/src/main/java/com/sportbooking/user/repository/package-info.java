@@ -1,4 +1,2 @@
-/**
- * Reserved for user repository implementation in milestone 2.
- */
+/** user repository implementation for milestone 2. */
 package com.sportbooking.user.repository;

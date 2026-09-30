@@ -1,4 +1,2 @@
-/**
- * Reserved for booking model implementation in milestone 2.
- */
+/** booking model implementation for milestone 2. */
 package com.sportbooking.booking.model;

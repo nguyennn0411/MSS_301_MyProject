@@ -1,0 +1,17 @@
+SportBooking Asm 1.2 - 30/09/2026 (Asia/Ho_Chi_Minh)
+Java 21.0.11 / Spring Boot 4.0.7 / Spring Cloud 2025.1.2 / H2 file
+PASS Maven verify: all five applications; 6 Java tests (4 unit + 2 real database tests)
+PASS frontend: 5 tests, lint and production build
+PASS Gateway routes to all 3 services
+PASS User create/read/update, validation and duplicate email
+PASS Court create/read/update and price validation
+PASS REST user/court validation, price calculation/snapshot, list/detail/availability
+PASS Conflict, missing user, past time and closing time rejected
+PASS Adjacent half-open intervals accepted
+PASS Cancel idempotency, release slots, 8 concurrent requests produce exactly 1 booking and 7 conflicts
+PASS Inactive user rejected
+PASS dependency outage returns 503 without writing a booking
+PASS full backend restart preserves booking and price
+PASS UI: real POST, server reload, busy slots, cancellation, offline error, 3 connected services, desktop/mobile, no runtime errors
+Screenshots: milestone-2-eureka.png, milestone-2-booking.png, milestone-2-history.png, milestone-2-mobile.png
+Scope: local only; authentication, authorization, Docker and multi-replica deployment not implemented.

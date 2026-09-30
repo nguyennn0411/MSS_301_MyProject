@@ -1,3 +1,5 @@
+> Tài liệu thiết kế ban đầu ở mốc 1. Hiện trạng mốc 2, điều chỉnh H2 file và API đã triển khai: [bàn giao mốc 2](08-milestone-2.md), [luồng request](09-request-flow.md).
+
 # 03. Thiết kế kiến trúc hệ thống
 
 ## 1. Sơ đồ tổng thể

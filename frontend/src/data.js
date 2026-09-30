@@ -92,8 +92,6 @@ export function bookingError(
   duration,
   now = Date.now(),
 ) {
-  if (!courts.some((court) => court.id === courtId))
-    return "Sân không tồn tại.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)))
     return "Vui lòng chọn ngày hợp lệ.";
   if (

@@ -1,4 +1,2 @@
-/**
- * Reserved for booking service implementation in milestone 2.
- */
+/** booking service implementation for milestone 2. */
 package com.sportbooking.booking.service;

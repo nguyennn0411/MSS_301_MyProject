@@ -1,0 +1,6 @@
+INSERT INTO courts (id,name,sport_type,location,hourly_rate,active) SELECT 'court-01','Sân cầu lông Sunrise','BADMINTON','Hòa Lạc, Hà Nội',80000,TRUE WHERE NOT EXISTS (SELECT 1 FROM courts WHERE id='court-01');
+INSERT INTO courts (id,name,sport_type,location,hourly_rate,active) SELECT 'court-02','Sân bóng Green Field','FOOTBALL','Thạch Thất, Hà Nội',300000,TRUE WHERE NOT EXISTS (SELECT 1 FROM courts WHERE id='court-02');
+INSERT INTO courts (id,name,sport_type,location,hourly_rate,active) SELECT 'court-03','Sân tennis Riverside','TENNIS','Hòa Lạc, Hà Nội',150000,TRUE WHERE NOT EXISTS (SELECT 1 FROM courts WHERE id='court-03');
+INSERT INTO courts (id,name,sport_type,location,hourly_rate,active) SELECT 'court-04','Sân cầu lông The Club','BADMINTON','Thạch Thất, Hà Nội',100000,TRUE WHERE NOT EXISTS (SELECT 1 FROM courts WHERE id='court-04');
+INSERT INTO courts (id,name,sport_type,location,hourly_rate,active) SELECT 'court-05','Sân bóng Campus','FOOTBALL','Hòa Lạc, Hà Nội',250000,TRUE WHERE NOT EXISTS (SELECT 1 FROM courts WHERE id='court-05');
+INSERT INTO courts (id,name,sport_type,location,hourly_rate,active) SELECT 'court-06','Sân tennis West Court','TENNIS','Thạch Thất, Hà Nội',180000,TRUE WHERE NOT EXISTS (SELECT 1 FROM courts WHERE id='court-06');

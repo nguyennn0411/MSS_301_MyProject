@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS courts (
+ id VARCHAR(64) PRIMARY KEY,
+ name VARCHAR(120) NOT NULL,
+ sport_type VARCHAR(30) NOT NULL,
+ location VARCHAR(200) NOT NULL,
+ hourly_rate DECIMAL(12,0) NOT NULL CHECK(hourly_rate > 0),
+ active BOOLEAN NOT NULL
+);

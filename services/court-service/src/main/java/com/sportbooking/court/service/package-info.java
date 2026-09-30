@@ -1,4 +1,2 @@
-/**
- * Reserved for court service implementation in milestone 2.
- */
+/** court service implementation for milestone 2. */
 package com.sportbooking.court.service;

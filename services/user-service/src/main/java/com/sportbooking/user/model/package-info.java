@@ -1,4 +1,2 @@
-/**
- * Reserved for user model implementation in milestone 2.
- */
+/** user model implementation for milestone 2. */
 package com.sportbooking.user.model;

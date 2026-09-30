@@ -1,16 +1,67 @@
 # SportBooking — Quản lý và đặt sân thể thao
 
-Bài làm MSS301: xây dựng hệ thống đặt sân thể thao theo kiến trúc Microservices, sử dụng Spring Boot, Spring Cloud và Docker.
+MSS301 · **Cao Phúc Nguyên — HE191659** · Nhóm 1 thành viên.
 
-Repository GitHub: [nguyennn0411/MSS_301_MyProject](https://github.com/nguyennn0411/MSS_301_MyProject).
+Repository: [nguyennn0411/MSS_301_MyProject](https://github.com/nguyennn0411/MSS_301_MyProject).
 
-**Giai đoạn hiện tại: mốc 1 — phân tích, thiết kế và khởi tạo skeleton (nội dung Asm 1.1).**
-Đã có 5 ứng dụng Spring Boot, cấu hình Eureka, route Gateway và API kiểm tra kết nối.
-Chưa có CRUD nghiệp vụ, database, đăng nhập, gọi REST giữa các service nghiệp vụ hoặc Docker Compose.
+## Tiến độ
 
-**Bổ sung giao diện:** React JS + Vite trong `frontend/`, gồm khám phá sân, yêu thích,
-đặt/hủy lịch demo trên trình duyệt và kiểm tra kết nối Gateway.
-Chức năng đặt sân chưa kết nối API nghiệp vụ. Xem [hướng dẫn frontend](frontend/README.md).
+- **Mốc 1 (Asm 1.1):** phân tích, kiến trúc, phân công và skeleton — hoàn thành.
+- **Mốc 2 (Asm 1.2):** ba REST microservices, Controller–Service–Repository, Eureka,
+  Gateway, REST liên service, database riêng và giao diện nối API — xem [bàn giao mốc 2](docs/08-milestone-2.md).
+- **Mốc 3:** Dockerfile và Docker Compose — chưa triển khai.
+
+SportBooking là đề tài Project đã chọn. Theo đề, Assignment phải dùng đề tài khác;
+repository này bám các mốc kỹ thuật đã cung cấp, không thay thế việc xác nhận đề tài với giảng viên.
+Đề có hai bộ hạn commit 5–7–8 và 3–6–9; cần xác nhận lịch chính thức.
+
+## Chức năng hiện có
+
+- User Service: tạo, đọc, cập nhật hồ sơ và trạng thái người dùng.
+- Court Service: tạo, đọc, cập nhật sân, giá và trạng thái hoạt động.
+- Booking Service: đặt sân, kiểm tra user/court qua REST, tính tiền từ giá backend,
+  lưu giá tại thời điểm đặt, lịch sử, chi tiết, lịch bận và hủy.
+- Chặn trùng giờ ở database, kể cả các request đồng thời; giải phóng giờ khi hủy.
+- React: tìm/lọc sân, yêu thích, chọn giờ, đặt/hủy qua API, tải lại lịch từ database.
+- Giao diện dùng tài khoản học tập user-nguyen. Chưa có đăng nhập/phân quyền hoặc thanh toán.
+
+## Kiến trúc
+
+```mermaid
+flowchart LR
+    F[React + Vite :5173] -->|/api proxy| G[API Gateway :8080]
+    G -->|lb://user-service| U[User Service :8081]
+    G -->|lb://court-service| C[Court Service :8082]
+    G -->|lb://booking-service| B[Booking Service :8083]
+    B -->|REST /api/users/id| U
+    B -->|REST /api/courts/id| C
+    U --> UD[(H2 user-db)]
+    C --> CD[(H2 court-db)]
+    B --> BD[(H2 booking-db)]
+    G -. tra cứu .-> E[Eureka :8761]
+    U -. đăng ký .-> E
+    C -. đăng ký .-> E
+    B -. đăng ký và tra cứu .-> E
+```
+
+Java 21 · Spring Boot 4.0.7 · Spring Cloud 2025.1.2 · Spring JDBC · H2 file · React 19 · Vite 8.
+Theo [bảng tương thích Spring Cloud](https://spring.io/projects/spring-cloud/).
+Maven multi-module quản lý build; mỗi ứng dụng có JAR và tiến trình riêng.
+Mỗi service chỉ truy cập database của mình.
+
+## Chạy local nhanh (PowerShell)
+
+Cần JDK 21 và JAVA_HOME, Node.js 22.12+ hoặc 24, Internet cho lần tải dependency đầu.
+
+```powershell
+# Tại root repository
+.\mvnw.cmd clean verify
+.\scripts\start-local.ps1
+```
+
+Script chạy 5 tiến trình nền, ghi log vào .run và chờ Gateway sẵn sàng (tối đa 180 giây).
+
+Terminal khác:
 
 ```powershell
 cd frontend
@@ -18,117 +69,46 @@ npm ci
 npm run dev
 ```
 
-Mở http://127.0.0.1:5173. Kiểm tra frontend bằng `npm run lint`, `npm test`, `npm run build`.
+- Giao diện: http://127.0.0.1:5173
+- Eureka: http://localhost:8761
+- Gateway: http://localhost:8080/api/courts
 
-![Giao diện SportBooking](docs/images/frontend-desktop.png)
+Dừng backend: ` .\scripts\stop-local.ps1 `; dừng Vite bằng Ctrl+C.
+Chi tiết, chạy từng JAR và xử lý lỗi: [hướng dẫn local](docs/05-local-run.md).
 
-> Đề yêu cầu Project và Assignment khác đề tài. SportBooking đang là đề tài đã chọn cho Project;
-> bộ khung này bám checklist Asm 1.1 được cung cấp. Không dùng cùng đề tài cho cả hai bài.
+## Dữ liệu
 
-## Thành viên
+H2 lưu tại data/user-db.mv.db, data/court-db.mv.db, data/booking-db.mv.db khi chạy từ root.
+Khởi động lại vẫn giữ dữ liệu. Dữ liệu seed gồm user-nguyen và 6 sân, chỉ thêm nếu chưa tồn tại.
+Không reset hồ sơ/giá sân khi restart. Dữ liệu và log bị loại khỏi Git.
 
-| Họ tên | MSSV | Vai trò |
-|---|---|---|
-| Cao Phúc Nguyên | HE191659 | Phân tích, phát triển backend, tích hợp, kiểm thử và tài liệu |
+Mốc này chọn H2 file để demo local không cần cài database; PostgreSQL là hướng triển khai sau.
+Mỗi H2 file chỉ mở bởi một tiến trình service trong cấu hình hiện tại.
 
-Phân công theo nhóm hiện có 1 thành viên. Xem [phân công và kế hoạch](docs/04-team-and-plan.md).
-
-## Mục tiêu và kiến trúc
-
-Khách xem sân và đặt sân theo thời gian. Hệ thống dự kiến kiểm tra trùng lịch, tính tiền, lưu lịch sử và hỗ trợ hủy đặt.
-
-```mermaid
-flowchart LR
-    C[Client / Postman] --> G[API Gateway :8080]
-    G --> U[User Service :8081]
-    G --> S[Court Service :8082]
-    G --> B[Booking Service :8083]
-    B -. REST dự kiến mốc 2 .-> U
-    B -. REST dự kiến mốc 2 .-> S
-    G -. tra cứu .-> E[Eureka :8761]
-    U -. đăng ký .-> E
-    S -. đăng ký .-> E
-    B -. đăng ký .-> E
-```
-
-Mỗi ứng dụng chạy bằng một tiến trình riêng. Các service nghiệp vụ sẽ sở hữu database riêng ở mốc 2.
-Maven multi-module chỉ dùng để quản lý source và build, không gộp các service thành một ứng dụng.
-
-## Công nghệ
-
-- Java 21; Spring Boot 4.0.7; Spring Cloud 2025.1.2.
-- Eureka Server/Client, Spring Cloud Gateway WebFlux, LoadBalancer, Actuator.
-- Maven 3.9.11 qua Maven Wrapper.
-- PostgreSQL và Docker Compose: dự kiến các mốc sau.
-
-Cặp phiên bản được chọn theo [bảng tương thích Spring Cloud](https://spring.io/projects/spring-cloud/).
-
-## Cấu trúc repository
-
-```text
-.
-├── docs/
-│   ├── 01-problem-analysis.md
-│   ├── 02-monolithic-vs-microservices.md
-│   ├── 03-system-architecture.md
-│   ├── 04-team-and-plan.md
-│   ├── 05-local-run.md
-│   └── 06-milestone-1-checklist.md
-├── discovery-server/
-├── api-gateway/
-├── services/
-│   ├── user-service/
-│   ├── court-service/
-│   └── booking-service/
-├── .mvn/wrapper/
-├── mvnw
-├── mvnw.cmd
-└── pom.xml
-```
-
-Tên user-service, court-service, booking-service thay cho service-a, service-b, service-c trong đề.
-
-## Build và chạy nhanh
-
-Yêu cầu JDK 21, JAVA_HOME trỏ đến JDK và Internet để Maven tải dependency ở lần đầu.
-
-Windows PowerShell, chạy tại thư mục gốc:
+## Kiểm thử
 
 ```powershell
-.\mvnw.cmd clean verify
+.\mvnw.cmd test
+node scripts/test-api.mjs
+npm --prefix frontend test
+npm --prefix frontend run lint
+npm --prefix frontend run build
 ```
 
-Mở 5 terminal tại thư mục gốc và chạy mỗi lệnh trong một terminal (Eureka trước):
+Test API yêu cầu backend đã sẵn sàng; tạo dữ liệu test riêng, rồi hủy lịch và ngừng hoạt động user/sân test.
+Chi tiết bằng chứng và giới hạn: [mốc 2](docs/08-milestone-2.md).
 
-```powershell
-java -jar discovery-server/target/discovery-server-0.0.1-SNAPSHOT.jar
-java -jar services/user-service/target/user-service-0.0.1-SNAPSHOT.jar
-java -jar services/court-service/target/court-service-0.0.1-SNAPSHOT.jar
-java -jar services/booking-service/target/booking-service-0.0.1-SNAPSHOT.jar
-java -jar api-gateway/target/api-gateway-0.0.1-SNAPSHOT.jar
-```
+## Tài liệu
 
-Linux/macOS: chạy `chmod +x mvnw`, build bằng `./mvnw clean verify`; các lệnh `java -jar` giữ nguyên.
+- [Phân tích bài toán](docs/01-problem-analysis.md)
+- [Monolithic vs Microservices](docs/02-monolithic-vs-microservices.md)
+- [Thiết kế kiến trúc ban đầu](docs/03-system-architecture.md)
+- [Phân công nhóm](docs/04-team-and-plan.md)
+- [Hướng dẫn local](docs/05-local-run.md)
+- [Checklist mốc 1](docs/06-milestone-1-checklist.md)
+- [Biên bản kiểm tra mốc 1](docs/07-validation.md)
+- [Bàn giao mốc 2 và API](docs/08-milestone-2.md)
+- [Luồng request hiện tại](docs/09-request-flow.md)
+- [Giao diện](frontend/README.md)
 
-Chờ các service đăng ký Eureka và Gateway cập nhật danh sách (thường khoảng 30–90 giây), sau đó:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/api/users/status
-Invoke-RestMethod http://localhost:8080/api/courts/status
-Invoke-RestMethod http://localhost:8080/api/bookings/status
-```
-
-Kết quả mỗi API gồm `service`, `status: UP`, `milestone: 1`.
-Dashboard Eureka: [localhost:8761](http://localhost:8761).
-Hướng dẫn đầy đủ và xử lý lỗi: [chạy local](docs/05-local-run.md).
-
-## Tài liệu nộp mốc 1
-
-1. [Phân tích bài toán và phạm vi](docs/01-problem-analysis.md).
-2. [So sánh Monolithic và Microservices](docs/02-monolithic-vs-microservices.md).
-3. [Sơ đồ kiến trúc, dữ liệu và luồng request](docs/03-system-architecture.md).
-4. [Phân công, tiến độ và quy trình Git](docs/04-team-and-plan.md).
-5. [Checklist nộp bài và đưa lên GitHub](docs/06-milestone-1-checklist.md).
-
-Đề có hai bộ mốc commit: tuần 5–7–8 trong từng phần và tuần 3–6–9 ở phần cuối.
-Cần xác nhận với giảng viên; chưa gán ngày hạn nộp khi chưa biết lịch học.
+![Giao diện](docs/images/milestone-2-booking.png)
