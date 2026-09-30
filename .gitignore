@@ -1,0 +1,22 @@
+# Build output and local tooling
+**/target/
+.tools/
+.m2/
+.run/
+*.log
+
+# IDE and OS
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.DS_Store
+Thumbs.db
+
+# Local secrets
+.env
+.env.*
+!.env.example
+application-local.yml
