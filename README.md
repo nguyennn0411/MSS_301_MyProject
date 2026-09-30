@@ -6,6 +6,20 @@ Bài làm MSS301: xây dựng hệ thống đặt sân thể thao theo kiến tr
 Đã có 5 ứng dụng Spring Boot, cấu hình Eureka, route Gateway và API kiểm tra kết nối.
 Chưa có CRUD nghiệp vụ, database, đăng nhập, gọi REST giữa các service nghiệp vụ hoặc Docker Compose.
 
+**Bổ sung giao diện:** React JS + Vite trong `frontend/`, gồm khám phá sân, yêu thích,
+đặt/hủy lịch demo trên trình duyệt và kiểm tra kết nối Gateway.
+Chức năng đặt sân chưa kết nối API nghiệp vụ. Xem [hướng dẫn frontend](frontend/README.md).
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+Mở http://127.0.0.1:5173. Kiểm tra frontend bằng `npm run lint`, `npm test`, `npm run build`.
+
+![Giao diện SportBooking](docs/images/frontend-desktop.png)
+
 > Đề yêu cầu Project và Assignment khác đề tài. SportBooking đang là đề tài đã chọn cho Project;
 > bộ khung này bám checklist Asm 1.1 được cung cấp. Không dùng cùng đề tài cho cả hai bài.
 
